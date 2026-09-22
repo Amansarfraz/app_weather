@@ -4,6 +4,8 @@ import '../routes/app_routes.dart';
 import '../utils/app_colors.dart';
 import '../utils/app_constants.dart';
 import 'home_screen.dart';
+import '../services/auth_service.dart';
+import 'login_screen.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -56,9 +58,19 @@ class _SplashScreenState extends State<SplashScreen>
 
     _controller.forward();
 
-    Future.delayed(AppConstants.splashDuration, () {
+    Future.delayed(AppConstants.splashDuration, () async {
       if (!mounted) return;
-      Navigator.of(context).pushReplacement(AppRoutes.fade(const HomeScreen()));
+      final isLoggedIn = await AuthService().isLoggedIn();
+      if (!mounted) return;
+      if (isLoggedIn) {
+        Navigator.of(
+          context,
+        ).pushReplacement(AppRoutes.fade(const HomeScreen()));
+      } else {
+        Navigator.of(
+          context,
+        ).pushReplacement(AppRoutes.fade(const LoginScreen()));
+      }
     });
   }
 
