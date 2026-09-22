@@ -19,6 +19,7 @@ dependencies:
   shared_preferences: ^2.3.2
   fl_chart: ^0.69.2
   share_plus: ^11.0.0
+  image_picker: ^1.1.2
 
   # Date/time formatting (e.g. "Mon, 3 PM")
   intl: ^0.19.0

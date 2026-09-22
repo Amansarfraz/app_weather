@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
 
 import '../routes/app_routes.dart';
-import '../services/auth_service.dart';
 import '../services/location_service.dart';
 import '../utils/app_colors.dart';
 import '../utils/app_constants.dart';
 import '../widgets/search_bar.dart';
-import 'login_screen.dart';
+import 'profile_screen.dart';
 import 'weather_details_screen.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -18,7 +17,6 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   final LocationService _locationService = LocationService();
-  final AuthService _authService = AuthService();
   final TextEditingController _controller = TextEditingController();
 
   bool _isLocating = false;
@@ -71,40 +69,8 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  Future<void> _logout() async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: AppColors.brandNavy,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-        title: const Text('Log out?', style: TextStyle(color: Colors.white)),
-        content: const Text(
-          'You will need to log in again to use the app.',
-          style: TextStyle(color: AppColors.textSecondary),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            child: const Text(
-              'Log out',
-              style: TextStyle(color: AppColors.danger),
-            ),
-          ),
-        ],
-      ),
-    );
-
-    if (confirmed != true) return;
-
-    await _authService.logout();
-    if (!mounted) return;
-    Navigator.of(
-      context,
-    ).pushAndRemoveUntil(AppRoutes.fade(const LoginScreen()), (route) => false);
+  void _openProfile() {
+    Navigator.of(context).push(AppRoutes.slide(const ProfileScreen()));
   }
 
   @override
@@ -130,10 +96,10 @@ class _HomeScreenState extends State<HomeScreen> {
                     const Spacer(),
                     IconButton(
                       icon: const Icon(
-                        Icons.logout_rounded,
+                        Icons.person_rounded,
                         color: Colors.white70,
                       ),
-                      onPressed: _logout,
+                      onPressed: _openProfile,
                     ),
                   ],
                 ),
