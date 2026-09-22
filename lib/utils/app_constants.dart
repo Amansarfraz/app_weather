@@ -11,12 +11,13 @@ class AppConstants {
   ///  - Web / Windows / macOS / Linux desktop -> http://127.0.0.1:8000
   static const String baseUrl = 'http://127.0.0.1:8000';
 
-  static const Duration splashDuration = Duration(milliseconds: 2400);
+  static const Duration splashDuration = Duration(milliseconds: 2600);
   static const Duration requestTimeout = Duration(seconds: 20);
 
   static const int maxHourlyItems = 8; // ~24 hours of 3-hour slots
   static const int maxHistoryItems = 20;
 
-  static const String appName = 'Weatherly';
-  static const String appTagline = 'Weather at your fingertips';
+  static const String appName = 'AuraWeather';
+  static const String appTagline = 'Weather, beautifully clear';
+  static const String logoAssetPath = 'assets/images/app_logo.png';
 }
