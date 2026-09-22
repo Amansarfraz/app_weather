@@ -215,11 +215,11 @@ class _WeatherDetailsScreenState extends State<WeatherDetailsScreen> {
       body: Container(
         width: double.infinity,
         height: double.infinity,
-        decoration: BoxDecoration(
+        decoration: const BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: gradient,
+            colors: AppColors.brandGradient,
           ),
         ),
         child: SafeArea(

@@ -54,7 +54,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [Color(0xFF3E5151), Color(0xFFDECBA4)],
+            colors: AppColors.brandGradient,
           ),
         ),
         child: SafeArea(
