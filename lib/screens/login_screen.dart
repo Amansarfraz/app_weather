@@ -47,10 +47,9 @@ class _LoginScreenState extends State<LoginScreen> {
     try {
       await _authService.login(email: email, password: password);
       if (!mounted) return;
-      Navigator.of(context).pushAndRemoveUntil(
-        AppRoutes.fade(const HomeScreen()),
-        (route) => false,
-      );
+      Navigator.of(
+        context,
+      ).pushAndRemoveUntil(AppRoutes.fade(HomeScreen()), (route) => false);
     } on AuthException catch (e) {
       setState(() {
         _error = e.message;

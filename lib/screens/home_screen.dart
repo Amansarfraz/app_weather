@@ -5,7 +5,6 @@ import '../models/city_model.dart';
 import '../models/weather_model.dart';
 import '../routes/app_routes.dart';
 import '../services/api_service.dart';
-import '../services/location_service.dart';
 import '../utils/app_colors.dart';
 import '../utils/app_constants.dart';
 import '../utils/share_helper.dart';
@@ -13,14 +12,22 @@ import '../utils/temperature_unit.dart';
 import '../widgets/air_quality_card.dart';
 import '../widgets/current_weather_card.dart';
 import '../widgets/hourly_weather_card.dart';
-import '../widgets/search_bar.dart';
 import '../widgets/temperature_chart.dart';
 import 'favorites_screen.dart';
 import 'history_screen.dart';
 import 'weather_screen.dart';
 
+/// Shows everything about one city's weather: current conditions, air
+/// quality, temperature trend, hourly strip, and a way to open the 5-day
+/// forecast, favorites, and history. Reached from the home screen after a
+/// search or "use my location".
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key});
+  final String? cityQuery;
+  final double? latitude;
+  final double? longitude;
+
+  const HomeScreen({super.key, this.cityQuery, this.latitude, this.longitude})
+    : assert(cityQuery != null || (latitude != null && longitude != null));
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -28,29 +35,22 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   final ApiService _apiService = ApiService();
-  final LocationService _locationService = LocationService();
-  final TextEditingController _controller = TextEditingController();
   final GlobalKey _weatherCardKey = GlobalKey();
 
-  bool _isLoading = false;
+  bool _isLoading = true;
   String? _error;
   CityModel? _city;
   List<ForecastItem> _forecast = [];
   AirQualityModel? _airQuality;
 
-  Set<String> _favoriteCities = {}; // lowercased city names
+  Set<String> _favoriteCities = {};
   bool _isTogglingFavorite = false;
 
   @override
   void initState() {
     super.initState();
     _loadFavorites();
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
+    _load();
   }
 
   Future<void> _loadFavorites() async {
@@ -61,7 +61,56 @@ class _HomeScreenState extends State<HomeScreen> {
         _favoriteCities = favorites.map((f) => f.city.toLowerCase()).toSet();
       });
     } catch (_) {
-      // Silent: favorites are a nice-to-have, don't block the home screen.
+      // Silent: favorites are a nice-to-have.
+    }
+  }
+
+  Future<void> _load({String? overrideCity}) async {
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
+
+    try {
+      final bundle = overrideCity != null
+          ? await _apiService.fetchWeatherFor(overrideCity)
+          : widget.cityQuery != null
+          ? await _apiService.fetchWeatherFor(widget.cityQuery!)
+          : await _apiService.fetchWeatherByLocation(
+              widget.latitude!,
+              widget.longitude!,
+            );
+
+      if (!mounted) return;
+      setState(() {
+        _city = bundle.city;
+        _forecast = bundle.forecast;
+        _isLoading = false;
+      });
+      _loadAirQuality(bundle.city.latitude, bundle.city.longitude);
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _error = e.message;
+        _isLoading = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _error = 'Something went wrong. Please try again.';
+        _isLoading = false;
+      });
+    }
+  }
+
+  Future<void> _loadAirQuality(double latitude, double longitude) async {
+    setState(() => _airQuality = null);
+    try {
+      final aq = await _apiService.fetchAirQuality(latitude, longitude);
+      if (!mounted) return;
+      setState(() => _airQuality = aq);
+    } catch (_) {
+      // Silent: nice-to-have.
     }
   }
 
@@ -115,95 +164,12 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  Future<void> _search(String city) async {
-    setState(() {
-      _isLoading = true;
-      _error = null;
-    });
-
-    try {
-      final bundle = await _apiService.fetchWeatherFor(city);
-      if (!mounted) return;
-      setState(() {
-        _city = bundle.city;
-        _forecast = bundle.forecast;
-        _isLoading = false;
-      });
-      _loadAirQuality(bundle.city.latitude, bundle.city.longitude);
-    } on ApiException catch (e) {
-      if (!mounted) return;
-      setState(() {
-        _error = e.message;
-        _isLoading = false;
-      });
-    } catch (e) {
-      if (!mounted) return;
-      setState(() {
-        _error = 'Something went wrong. Please try again.';
-        _isLoading = false;
-      });
-    }
-  }
-
-  Future<void> _loadAirQuality(double latitude, double longitude) async {
-    setState(() => _airQuality = null);
-    try {
-      final aq = await _apiService.fetchAirQuality(latitude, longitude);
-      if (!mounted) return;
-      setState(() => _airQuality = aq);
-    } catch (_) {
-      // Silent: air quality is a nice-to-have, don't block the main screen.
-    }
-  }
-
-  Future<void> _useCurrentLocation() async {
-    setState(() {
-      _isLoading = true;
-      _error = null;
-    });
-
-    try {
-      final position = await _locationService.getCurrentPosition();
-      final bundle = await _apiService.fetchWeatherByLocation(
-        position.latitude,
-        position.longitude,
-      );
-      if (!mounted) return;
-      setState(() {
-        _city = bundle.city;
-        _forecast = bundle.forecast;
-        _controller.text = bundle.city.name;
-        _isLoading = false;
-      });
-      _loadAirQuality(bundle.city.latitude, bundle.city.longitude);
-    } on LocationException catch (e) {
-      if (!mounted) return;
-      setState(() {
-        _error = e.message;
-        _isLoading = false;
-      });
-    } on ApiException catch (e) {
-      if (!mounted) return;
-      setState(() {
-        _error = e.message;
-        _isLoading = false;
-      });
-    } catch (e) {
-      if (!mounted) return;
-      setState(() {
-        _error = 'Could not get weather for your location.';
-        _isLoading = false;
-      });
-    }
-  }
-
   Future<void> _openHistory() async {
     final selectedCity = await Navigator.of(
       context,
     ).push<String>(AppRoutes.slide(const HistoryScreen()));
     if (selectedCity != null && selectedCity.isNotEmpty) {
-      _controller.text = selectedCity;
-      _search(selectedCity);
+      _load(overrideCity: selectedCity);
     }
   }
 
@@ -212,8 +178,7 @@ class _HomeScreenState extends State<HomeScreen> {
       context,
     ).push<String>(AppRoutes.slide(const FavoritesScreen()));
     if (selectedCity != null && selectedCity.isNotEmpty) {
-      _controller.text = selectedCity;
-      _search(selectedCity);
+      _load(overrideCity: selectedCity);
     }
   }
 
@@ -233,7 +198,6 @@ class _HomeScreenState extends State<HomeScreen> {
       isNight: _city?.isNight ?? false,
     );
 
-    // Today's remaining 3-hour slots for the horizontal strip and chart.
     final now = DateTime.now();
     final hourly = _forecast
         .where(
@@ -244,8 +208,7 @@ class _HomeScreenState extends State<HomeScreen> {
         .toList();
 
     return Scaffold(
-      body: AnimatedContainer(
-        duration: const Duration(milliseconds: 700),
+      body: Container(
         width: double.infinity,
         height: double.infinity,
         decoration: BoxDecoration(
@@ -259,32 +222,39 @@ class _HomeScreenState extends State<HomeScreen> {
           child: Column(
             children: [
               Padding(
-                padding: const EdgeInsets.fromLTRB(20, 12, 20, 8),
+                padding: const EdgeInsets.fromLTRB(4, 8, 12, 4),
                 child: Row(
                   children: [
-                    _RoundIconButton(
-                      icon: Icons.my_location_rounded,
-                      onTap: _useCurrentLocation,
+                    IconButton(
+                      icon: const Icon(
+                        Icons.arrow_back_ios_new_rounded,
+                        color: Colors.white,
+                      ),
+                      onPressed: () => Navigator.of(context).pop(),
                     ),
-                    const SizedBox(width: 10),
                     Expanded(
-                      child: CitySearchBar(
-                        controller: _controller,
-                        isLoading: _isLoading,
-                        onSubmitted: _search,
+                      child: Text(
+                        _city?.name ?? 'Weather',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 18,
+                          fontWeight: FontWeight.w700,
+                        ),
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
-                    const SizedBox(width: 10),
                     const _UnitToggleButton(),
-                    const SizedBox(width: 10),
-                    _RoundIconButton(
-                      icon: Icons.star_rounded,
-                      onTap: _openFavorites,
+                    const SizedBox(width: 6),
+                    IconButton(
+                      icon: const Icon(Icons.star_rounded, color: Colors.white),
+                      onPressed: _openFavorites,
                     ),
-                    const SizedBox(width: 10),
-                    _RoundIconButton(
-                      icon: Icons.history_rounded,
-                      onTap: _openHistory,
+                    IconButton(
+                      icon: const Icon(
+                        Icons.history_rounded,
+                        color: Colors.white,
+                      ),
+                      onPressed: _openHistory,
                     ),
                   ],
                 ),
@@ -307,27 +277,18 @@ class _HomeScreenState extends State<HomeScreen> {
     if (_error != null) {
       return _MessageState(
         icon: Icons.cloud_off_rounded,
-        title: 'Couldn\'t load weather',
+        title: "Couldn't load weather",
         message: _error!,
         actionLabel: 'Try again',
-        onAction: _controller.text.trim().isEmpty
-            ? null
-            : () => _search(_controller.text.trim()),
+        onAction: () => _load(),
       );
     }
 
-    if (_city == null) {
-      return const _MessageState(
-        icon: Icons.search_rounded,
-        title: 'Search a city',
-        message:
-            'Type a city name above to see the current weather\nand a 5-day forecast.',
-      );
-    }
+    if (_city == null) return const SizedBox.shrink();
 
     return RefreshIndicator(
       color: AppColors.primary,
-      onRefresh: () => _search(_city!.name),
+      onRefresh: () => _load(),
       child: ListView(
         physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.fromLTRB(20, 8, 20, 28),
@@ -401,29 +362,6 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 }
 
-class _RoundIconButton extends StatelessWidget {
-  final IconData icon;
-  final VoidCallback onTap;
-
-  const _RoundIconButton({required this.icon, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: AppColors.glass,
-      shape: const CircleBorder(side: BorderSide(color: AppColors.glassBorder)),
-      child: InkWell(
-        customBorder: const CircleBorder(),
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.all(14),
-          child: Icon(icon, color: Colors.white, size: 22),
-        ),
-      ),
-    );
-  }
-}
-
 class _UnitToggleButton extends StatelessWidget {
   const _UnitToggleButton();
 
@@ -432,24 +370,14 @@ class _UnitToggleButton extends StatelessWidget {
     return ValueListenableBuilder<bool>(
       valueListenable: TemperatureUnit.isFahrenheit,
       builder: (context, isFahrenheit, _) {
-        return Material(
-          color: AppColors.glass,
-          shape: const CircleBorder(
-            side: BorderSide(color: AppColors.glassBorder),
-          ),
-          child: InkWell(
-            customBorder: const CircleBorder(),
-            onTap: TemperatureUnit.toggle,
-            child: Padding(
-              padding: const EdgeInsets.all(14),
-              child: Text(
-                isFahrenheit ? '°F' : '°C',
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
+        return IconButton(
+          onPressed: TemperatureUnit.toggle,
+          icon: Text(
+            isFahrenheit ? '°F' : '°C',
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 14,
+              fontWeight: FontWeight.w700,
             ),
           ),
         );

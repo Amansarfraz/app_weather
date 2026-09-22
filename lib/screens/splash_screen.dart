@@ -63,9 +63,7 @@ class _SplashScreenState extends State<SplashScreen>
       final isLoggedIn = await AuthService().isLoggedIn();
       if (!mounted) return;
       if (isLoggedIn) {
-        Navigator.of(
-          context,
-        ).pushReplacement(AppRoutes.fade(const HomeScreen()));
+        Navigator.of(context).pushReplacement(AppRoutes.fade(HomeScreen()));
       } else {
         Navigator.of(
           context,

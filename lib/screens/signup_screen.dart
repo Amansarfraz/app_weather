@@ -5,7 +5,8 @@ import '../services/auth_service.dart';
 import '../utils/app_colors.dart';
 import '../utils/app_constants.dart';
 import '../widgets/auth_text_field.dart';
-import 'home_screen.dart';
+//import 'home_screen.dart';
+import 'login_screen.dart';
 
 class SignupScreen extends StatefulWidget {
   const SignupScreen({super.key});
@@ -59,9 +60,18 @@ class _SignupScreenState extends State<SignupScreen> {
 
     try {
       await _authService.signup(name: name, email: email, password: password);
+
+      // The signup endpoint already logs the user in server-side, but we
+      // want the explicit signup -> login -> home flow, so clear the local
+      // session immediately and send them to the login screen instead.
+      await _authService.logout();
+
       if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Account created! Please log in.')),
+      );
       Navigator.of(context).pushAndRemoveUntil(
-        AppRoutes.fade(const HomeScreen()),
+        AppRoutes.fade(const LoginScreen()),
         (route) => false,
       );
     } on AuthException catch (e) {
