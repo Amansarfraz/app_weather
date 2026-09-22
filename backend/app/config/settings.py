@@ -31,3 +31,7 @@ if not RAPIDAPI_KEY:
         "Make sure that file exists and has a line like:\n"
         "RAPIDAPI_KEY=your_real_key_here"
     )
+
+JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY", "change-this-secret-in-production")
+JWT_ALGORITHM = "HS256"
+JWT_EXPIRE_MINUTES = 60 * 24 * 7  # 7 days

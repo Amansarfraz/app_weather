@@ -1,5 +1,8 @@
 fastapi
 uvicorn
 httpx
-python-dotenv
 pymongo
+python-dotenv
+passlib[bcrypt]
+python-jose[cryptography]
+email-validator

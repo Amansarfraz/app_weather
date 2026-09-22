@@ -1,13 +1,14 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.routers.auth_router import router as auth_router
 from app.routers.favorite_router import router as favorite_router
 from app.routers.history_router import router as history_router
 from app.routers.weather_router import router as weather_router
 
 app = FastAPI(
     title="Weather App API",
-    description="Weather Forecast API using RapidAPI + MongoDB search history",
+    description="Weather Forecast API using RapidAPI + MongoDB",
     version="1.0.0",
 )
 
@@ -24,6 +25,7 @@ app.add_middleware(
 app.include_router(weather_router)
 app.include_router(history_router)
 app.include_router(favorite_router)
+app.include_router(auth_router)
 
 
 @app.get("/")
