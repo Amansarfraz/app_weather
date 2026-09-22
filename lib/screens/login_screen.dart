@@ -55,7 +55,9 @@ class _LoginScreenState extends State<LoginScreen> {
         _error = e.message;
         _isLoading = false;
       });
-    } catch (e) {
+    } catch (e, stackTrace) {
+      debugPrint('LOGIN ERROR: $e');
+      debugPrint('STACK: $stackTrace');
       setState(() {
         _error = 'Something went wrong. Please try again.';
         _isLoading = false;
